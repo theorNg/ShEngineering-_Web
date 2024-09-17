@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Voice Recorder & File Uploader</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+		<style>
+			body {
+				font-family: "Poppins", sans-serif;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				background-color: #f2f2f2;
+			}
+
+			.voice-recorder {
+				display: flex;
+				align-items: center;
+				background-color: white;
+				border-radius: 50px;
+				padding: 10px 20px;
+				box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+				margin-bottom: 20px;
+			}
+
+			.mic-button,
+			.upload-button {
+				background-color: #e0f7df;
+				border: none;
+				border-radius: 50%;
+				width: 50px;
+				height: 50px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				cursor: pointer;
+				margin-right: 15px;
+			}
+
+			.mic-button img,
+			.upload-button img {
+				width: 24px;
+				height: 24px;
+			}
+
+			.status-text {
+				color: #4caf50;
+				font-size: 16px;
+			}
+
+			.logo {
+				height: 60px;
+			}
+
+			#stopBtn {
+				display: none;
+			}
+
+			#resultContainer {
+				display: none;
+				background-color: white;
+				padding: 20px;
+				border: 1px solid #ddd;
+				width: 100%;
+				max-width: 500px;
+				box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+			}
+
+			#resultContainer img {
+				width: 100px;
+				height: 100px;
+				object-fit: cover;
+				border-radius: 10px;
+				margin-right: 15px;
+			}
+
+			#resultContainer .info {
+				display: flex;
+				align-items: center;
+			}
+
+			#resultContainer h3,
+			#resultContainer p {
+				margin: 0;
+				font-family: Arial, sans-serif;
+			}
+
+			#resultContainer h3 {
+				font-size: 18px;
+				color: #333;
+			}
+
+			#resultContainer p {
+				font-size: 14px;
+				color: #666;
+			}
+
+			.title {
+				font-size: 100px;
+				font-weight: bold;
+				margin-bottom: 20px;
+				color: #4caf50;
+				text-shadow: 3px 5px #333;
+			}
+
+		</style>
+	</head>
+	<body>
+		<div class="title">Search Song</div>
+		<div class="voice-recorder">
+			<button id="startBtn" class="mic-button">
+				<img
+					src="https://img.icons8.com/ios-filled/50/000000/microphone.png"
+					alt="Mic"
+				/>
+			</button>
+			<button id="stopBtn" class="mic-button">
+				<img
+					src="https://img.icons8.com/ios-filled/50/ff0000/microphone.png"
+					alt="Stop"
+				/>
+			</button>
+			<input
+				type="file"
+				id="uploadInput"
+				accept="audio/*"
+				style="display: none"
+			/>
+			<button id="uploadBtn" class="upload-button">
+				<img
+					src="https://img.icons8.com/ios-filled/50/000000/upload.png"
+					alt="Upload"
+				/>
+			</button>
+			<p id="status" class="status-text"></p>
+			<img src="Cốc Cốc _ logo.png" alt="Cốc Cốc Logo" class="logo" />
+		</div>
+
+		<div id="resultContainer">
+			<div class="info">
+				<img id="songImage" src="" alt="Song image" />
+				<div>
+					<h3 id="songTitle">Tên bài hát</h3>
+					<p id="songArtist">Tác giả</p>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			let mediaRecorder;
+			let audioChunks = [];
+
+			document
+				.getElementById("startBtn")
+				.addEventListener("click", async () => {
+					const stream = await navigator.mediaDevices.getUserMedia({
+						audio: true,
+					});
+					mediaRecorder = new MediaRecorder(stream);
+					audioChunks = [];
+
+					mediaRecorder.ondataavailable = (event) => {
+						audioChunks.push(event.data);
+					};
+
+					mediaRecorder.onstop = () => {
+						const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+						const audioFile = new File([audioBlob], "recording.wav", {
+							type: "audio/wav",
+						});
+						sendAudioFile(audioFile);
+					};
+
+					mediaRecorder.start();
+					document.getElementById("status").textContent =
+						"Đang nghe bạn nói...";
+					document.title = "🔴 Ghi âm...";
+					document.getElementById("startBtn").style.display = "none";
+					document.getElementById("stopBtn").style.display = "block";
+				});
+
+			document.getElementById("stopBtn").addEventListener("click", () => {
+				mediaRecorder.stop();
+				document.getElementById("status").textContent = "Đã dừng ghi âm";
+				document.title = "Voice Recorder - Cốc Cốc Style";
+				document.getElementById("startBtn").style.display = "block";
+				document.getElementById("stopBtn").style.display = "none";
+			});
+
+			document.getElementById("uploadBtn").addEventListener("click", () => {
+				document.getElementById("uploadInput").click();
+			});
+
+			document
+				.getElementById("uploadInput")
+				.addEventListener("change", function (event) {
+					const file = event.target.files[0];
+					if (file) {
+						sendAudioFile(file);
+						document.getElementById("status").textContent =
+							"Đang tải lên file...";
+					}
+				});
+
+			async function sendAudioFile(file) {
+				const formData = new FormData();
+				formData.append("file", file);
+
+				const options = {
+					method: "POST",
+					url: "https://shazam-song-recognition-api.p.rapidapi.com/recognize/file",
+					headers: {
+						"x-rapidapi-key":
+							"ae5024a74fmsh82ec0cd5667d6e5p1152a1jsn0fb64f891916",
+						"x-rapidapi-host": "shazam-song-recognition-api.p.rapidapi.com",
+						"Content-Type": "application/octet-stream",
+					},
+					data: formData,
+				};
+
+				try {
+					const response = await axios.request(options);
+					const songData = response.data.track;
+					document.getElementById("resultContainer").style.display = "block";
+					document.getElementById("songTitle").textContent = songData.title;
+					document.getElementById("songArtist").textContent = songData.subtitle;
+					document.getElementById("songImage").src = songData.images.coverart;
+					document.getElementById("status").textContent = "";
+				} catch (error) {
+					console.error(error);
+					document.getElementById("status").textContent =
+						"Lỗi khi gửi âm thanh!";
+				}
+			}
+		</script>
+
+		<!-- Thêm thư viện axios -->
+		<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+	</body>
+</html>
