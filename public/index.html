@@ -4,6 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Voice Recorder & File Uploader</title>
+		<link rel="short-cut icon" href="1.png">
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
@@ -15,7 +16,7 @@
 				justify-content: center;
 				align-items: center;
 				height: 100vh;
-				background-color: #f2f2f2;
+				background-color: white;
 			}
 
 			.voice-recorder {
@@ -100,24 +101,40 @@
 				color: #666;
 			}
 
-			.title {
+			.title h2 {
+				text-align: center;
 				font-size: 100px;
 				font-weight: bold;
 				margin-bottom: 20px;
 				color: #4caf50;
 				text-shadow: 3px 5px #333;
+
 			}
 
-			.logo-img{
-				width: 100%;
-				height: 50%;
-				margin-top: -100px;;
+			.footer img
+			{
+				height: 200px;
+				width: 300px;
 			}
 
+			#noSongFoundContainer{
+				font-family: "Poppins", sans-serif;
+			}
+
+			#songTitle{
+				font-weight: bold;
+				font-family: "Poppins", sans-serif;
+			}
+
+			#songArtist{
+				font-family: "Poppins", sans-serif;
+			}
 		</style>
 	</head>
 	<body>
-		<div class="title">Search Song</div>
+		<div class="title">
+			<h2>Search Song</h2>
+		</div>
 		<div class="voice-recorder">
 			<button id="startBtn" class="mic-button">
 				<img
@@ -155,16 +172,18 @@
 					<p id="songArtist">Tác giả</p>
 				</div>
 			</div>
+			<div id="noSongFoundContainer" style="display: none;">
+				<p>Không tìm thấy bài hát nào. Vui lòng thử lại!</p>
+			</div>
 		</div>
-
-		<div class="icon-container"></div>
-			<img src="9187929.png" alt="C c C Logo" class="logo-img" />
+		<div class="footer">
+			<img src="6n7l_ylu5_210702.jpg" alt="">
 		</div>
 
 		<script>
 			let mediaRecorder;
 			let audioChunks = [];
-
+		
 			document
 				.getElementById("startBtn")
 				.addEventListener("click", async () => {
@@ -173,11 +192,11 @@
 					});
 					mediaRecorder = new MediaRecorder(stream);
 					audioChunks = [];
-
+		
 					mediaRecorder.ondataavailable = (event) => {
 						audioChunks.push(event.data);
 					};
-
+		
 					mediaRecorder.onstop = () => {
 						const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
 						const audioFile = new File([audioBlob], "recording.wav", {
@@ -185,15 +204,13 @@
 						});
 						sendAudioFile(audioFile);
 					};
-
+		
 					mediaRecorder.start();
-					document.getElementById("status").textContent =
-						"Đang nghe bạn nói...";
-					document.title = "🔴 Ghi âm...";
+					document.getElementById("status").textContent = "🔴 Đang nghe bạn nói...";
 					document.getElementById("startBtn").style.display = "none";
 					document.getElementById("stopBtn").style.display = "block";
 				});
-
+		
 			document.getElementById("stopBtn").addEventListener("click", () => {
 				mediaRecorder.stop();
 				document.getElementById("status").textContent = "Đã dừng ghi âm";
@@ -201,51 +218,59 @@
 				document.getElementById("startBtn").style.display = "block";
 				document.getElementById("stopBtn").style.display = "none";
 			});
-
+		
 			document.getElementById("uploadBtn").addEventListener("click", () => {
 				document.getElementById("uploadInput").click();
 			});
-
+		
 			document
 				.getElementById("uploadInput")
 				.addEventListener("change", function (event) {
 					const file = event.target.files[0];
 					if (file) {
 						sendAudioFile(file);
-						document.getElementById("status").textContent =
-							"Đang tải lên file...";
+						document.getElementById("status").textContent = "Đang tải lên file...";
 					}
 				});
-
+		
 			async function sendAudioFile(file) {
 				const formData = new FormData();
 				formData.append("file", file);
-
+		
 				const options = {
 					method: "POST",
 					url: "https://shazam-song-recognition-api.p.rapidapi.com/recognize/file",
 					headers: {
-						"x-rapidapi-key":
-							"ae5024a74fmsh82ec0cd5667d6e5p1152a1jsn0fb64f891916",
+						"x-rapidapi-key": "ae5024a74fmsh82ec0cd5667d6e5p1152a1jsn0fb64f891916",
 						"x-rapidapi-host": "shazam-song-recognition-api.p.rapidapi.com",
 						"Content-Type": "application/octet-stream",
 					},
 					data: formData,
 				};
-
+		
 				try {
 					const response = await axios.request(options);
 					const songData = response.data.track;
-					document.getElementById("resultContainer").style.display = "block";
-					document.getElementById("songTitle").textContent = songData.title;
-					document.getElementById("songArtist").textContent = songData.subtitle;
-					document.getElementById("songImage").src = songData.images.coverart;
-					document.getElementById("status").textContent = "";
+					if (songData) {
+						document.getElementById("resultContainer").style.display = "block";
+						document.getElementById("songTitle").textContent = songData.title;
+						document.getElementById("songArtist").textContent = songData.subtitle;
+						document.getElementById("songImage").src = songData.images.coverart;
+						document.getElementById("status").textContent = "";
+					} else {
+						// No song found case
+						showNoSongFoundMessage();
+					}
 				} catch (error) {
 					console.error(error);
-					document.getElementById("status").textContent =
-						"Lỗi khi gửi âm thanh!";
+					showNoSongFoundMessage();
 				}
+			}
+		
+			function showNoSongFoundMessage() {
+				document.getElementById("resultContainer").style.display = "none";
+				document.getElementById("status").textContent = "Không thể nhận diện bài hát!";
+				document.getElementById("noSongFoundContainer").style.display = "block";
 			}
 		</script>
 
@@ -253,3 +278,4 @@
 		<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 	</body>
 </html>
+
